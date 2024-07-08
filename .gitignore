@@ -1,3 +1,2 @@
-
-.zig_cache/
-zig_out/
+.zig-cache
+zig-out
