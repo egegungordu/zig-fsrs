@@ -13,11 +13,9 @@ pub const Rating = enum(u3) {
     Hard = 2,
     Good = 3,
     Easy = 4,
-
-    pub const _len = @typeInfo(Rating).Enum.fields.len - 1;
 };
 
-// pub const RATINGS_LEN = @typeInfo(Rating).Enum.fields.len;
+pub const RATINGS_LEN = @typeInfo(Rating).Enum.fields.len;
 
 pub const Parameters = struct {
     pub const DECAY: f32 = -0.5;
@@ -51,7 +49,6 @@ pub const Card = struct {
     lapses: i32,
     state: State,
     last_review: i64,
-    previous_state: State,
 
     pub fn init() Card {
         return .{
@@ -64,7 +61,6 @@ pub const Card = struct {
             .lapses = 0,
             .state = .New,
             .last_review = 0,
-            .previous_state = .New,
         };
     }
 };
@@ -77,7 +73,7 @@ pub const SchedulingCards = struct {
 
     const Self = @This();
 
-    pub fn init(card: *Card) Self {
+    pub fn init(card: *const Card) Self {
         return .{
             .again = card.*,
             .hard = card.*,
@@ -110,27 +106,8 @@ pub const SchedulingCards = struct {
         }
     }
 
-    // pub fn schedule(self: *Self, now: i64, hard_interval: i64, good_interval: i64, easy_interval: i64) *Self {
-    //     self.again.scheduled_days = 0;
-    //     self.hard.scheduled_days = hard_interval;
-    //     self.good.scheduled_days = good_interval;
-    //     self.easy.scheduled_days = easy_interval;
-    //     if (hard_interval > 0) {
-    //         // add n days
-    //         self.hard.due = now + hard_interval * 24 * 60 * 60;
-    //     } else {
-    //         // add 10 minutes
-    //         self.hard.due = now + 10 * 60;
-    //     }
-    //     // add n days
-    //     self.good.due = now + good_interval * 24 * 60 * 60;
-    //     self.easy.due = now + easy_interval * 24 * 60 * 60;
-    //
-    //     return self;
-    // }
-
-    pub fn recordLog(self: *Self, now: i64) [Rating._len]SchedulingInfo {
-        return [Rating._len]SchedulingInfo{ .{
+    pub fn recordLog(self: *Self, now: i64) [RATINGS_LEN - 1]SchedulingInfo {
+        return [RATINGS_LEN - 1]SchedulingInfo{ .{
             .card = self.again,
             .review_log = .{
                 .rating = .Again,

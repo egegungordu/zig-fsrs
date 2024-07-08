@@ -6,6 +6,7 @@ const Card = Models.Card;
 const SchedulingCards = Models.SchedulingCards;
 const SchedulingInfo = Models.SchedulingInfo;
 const Rating = Models.Rating;
+const RATINGS_LEN = Models.RATINGS_LEN;
 
 const Self = @This();
 
@@ -17,25 +18,34 @@ pub fn init(params: Parameters) Self {
     };
 }
 
-pub fn repeat(self: *Self, card: *Card, now: i64) [Rating._len]SchedulingInfo {
+pub fn repeat(self: *Self, card: Card, now: i64) [RATINGS_LEN - 1]SchedulingInfo {
     const minute = 60;
     const day = 24 * 60 * 60;
+    var c = card;
 
-    if (card.state == .New) {
-        card.elapsed_days = 0;
+    if (c.state == .New) {
+        c.elapsed_days = 0;
     } else {
-        card.elapsed_days = @divFloor(now - card.last_review, day);
+        c.elapsed_days = @divFloor(now - c.last_review, day);
     }
-    card.last_review = now;
-    card.reps += 1;
-    var s = SchedulingCards.init(card);
+
+    c.last_review = now;
+    c.reps += 1;
+    var s = SchedulingCards.init(&c);
     s.updateState(card.state);
 
     switch (card.state) {
         .New => {
-            self.initDifficultyStability(&s);
+            s.again.stability = self.initStability(.Again);
+            s.again.difficulty = self.initDifficulty(.Again);
+            s.hard.stability = self.initStability(.Hard);
+            s.hard.difficulty = self.initDifficulty(.Hard);
+            s.good.stability = self.initStability(.Good);
+            s.good.difficulty = self.initDifficulty(.Good);
+            s.easy.stability = self.initStability(.Easy);
+            s.easy.difficulty = self.initDifficulty(.Easy);
 
-            const easy_interval = self.getNextInterval(s.easy.stability);
+            const easy_interval = self.nextInterval(s.easy.stability);
 
             s.again.due = now + 1 * minute;
             s.hard.due = now + 5 * minute;
@@ -44,8 +54,8 @@ pub fn repeat(self: *Self, card: *Card, now: i64) [Rating._len]SchedulingInfo {
             s.easy.due = now + easy_interval * day;
         },
         .Learning, .Relearning => {
-            const good_interval = self.getNextInterval(s.good.stability);
-            const easy_interval = @max(good_interval + 1, self.getNextInterval(s.easy.stability));
+            const good_interval = self.nextInterval(s.good.stability);
+            const easy_interval = @max(good_interval + 1, self.nextInterval(s.easy.stability));
 
             s.again.scheduled_days = 0;
             s.again.due = now + 5 * minute;
@@ -57,22 +67,18 @@ pub fn repeat(self: *Self, card: *Card, now: i64) [Rating._len]SchedulingInfo {
             s.easy.due = now + easy_interval * day;
         },
         .Review => {
-            self.setNextDifficultyStability(&s, card);
+            s.again.stability = self.nextForgetStability(&c);
+            s.again.difficulty = self.nextDifficulty(&c, .Again);
+            s.hard.stability = self.nextRecallStability(&c, .Hard);
+            s.hard.difficulty = self.nextDifficulty(&c, .Hard);
+            s.good.stability = self.nextRecallStability(&c, .Good);
+            s.good.difficulty = self.nextDifficulty(&c, .Good);
+            s.easy.stability = self.nextRecallStability(&c, .Easy);
+            s.easy.difficulty = self.nextDifficulty(&c, .Easy);
 
-            // TODO: might be better to use a function that gets all
-            // the needed variables
-            // calculateNextInterval
-            //   - max_interval
-            //   - request_retention
-            //   - stability
-            //   - difficulty
-            //   - factor
-            //   - decay
-            //
-            //  and then call it with getNextInterval
-            var hard_interval = self.getNextInterval(s.hard.stability);
-            var good_interval = self.getNextInterval(s.good.stability);
-            var easy_interval = self.getNextInterval(s.easy.stability);
+            var hard_interval = self.nextInterval(s.hard.stability);
+            var good_interval = self.nextInterval(s.good.stability);
+            var easy_interval = self.nextInterval(s.easy.stability);
 
             hard_interval = @min(hard_interval, good_interval);
             good_interval = @max(good_interval, hard_interval + 1);
@@ -92,40 +98,62 @@ pub fn repeat(self: *Self, card: *Card, now: i64) [Rating._len]SchedulingInfo {
     return s.recordLog(now);
 }
 
-// max(w_(rating - 1), 0.1)
 fn initStability(self: *Self, rating: Rating) f32 {
     return @max(self.params.w[@intFromEnum(rating) - 1], 0.1);
 }
 
-// w_4 - (G - 3) * w_5
 fn initDifficulty(self: *Self, rating: Rating) f32 {
-    return @min(10, @max(1, @mulAdd(f32, self.params.w[5], -(@as(f32, @floatFromInt(@intFromEnum(rating))) - 3.0), self.params.w[4])));
-}
+    // zig fmt: off
+    const difficulty = @mulAdd(
+        f32, 
+        self.params.w[5], 
+        -(@as(f32, @floatFromInt(@intFromEnum(rating))) - 3.0), 
+        self.params.w[4]
+    );
+    // zig fmt: on
 
-fn initDifficultyStability(self: *Self, scheduling_cards: *SchedulingCards) void {
-    scheduling_cards.again.stability = self.initStability(.Again);
-    scheduling_cards.again.difficulty = self.initDifficulty(.Again);
-    scheduling_cards.hard.stability = self.initStability(.Hard);
-    scheduling_cards.hard.difficulty = self.initDifficulty(.Hard);
-    scheduling_cards.good.stability = self.initStability(.Good);
-    scheduling_cards.good.difficulty = self.initDifficulty(.Good);
-    scheduling_cards.easy.stability = self.initStability(.Easy);
-    scheduling_cards.easy.difficulty = self.initDifficulty(.Easy);
+    return @min(10, @max(1, difficulty));
 }
 
 fn forgettingCurve(elapsed_days: i64, stability: f32) f32 {
-    return std.math.pow(f32, 1.0 + Parameters.FACTOR * @as(f32, @floatFromInt(elapsed_days)) / stability, Parameters.DECAY);
+    // zig fmt: off
+    return std.math.pow(
+        f32, 
+        1.0 + Parameters.FACTOR * @as(f32, @floatFromInt(elapsed_days)) / stability, 
+        Parameters.DECAY
+    );
+    // zig fmt: on
 }
 
-fn getMeanReversion(self: *Self, initial: f32, current: f32) f32 {
-    return @mulAdd(f32, self.params.w[7], initial, (1.0 - self.params.w[7]) * current);
+fn meanReversion(self: *Self, initial: f32, current: f32) f32 {
+    // zig fmt: off
+    return @mulAdd(
+        f32, 
+        self.params.w[7], 
+        initial, 
+        (1.0 - self.params.w[7]) * current
+    );
+    // zig fmt: on
 }
 
-fn getNextInterval(self: *Self, stability: f32) i64 {
-    return @max(1, @min(self.params.maximum_interval, @as(i32, @intFromFloat(@round(stability / Parameters.FACTOR * (std.math.pow(f32, self.params.request_retention, 1.0 / Parameters.DECAY) - 1.0))))));
+fn nextInterval(self: *Self, stability: f32) i64 {
+    // zig fmt: off
+    const next_interval = @as(i32, 
+        @intFromFloat(@round(
+            stability / Parameters.FACTOR 
+            * (std.math.pow(
+                f32, 
+                self.params.request_retention, 
+                1.0 / Parameters.DECAY)
+            - 1.0)
+        ))
+    );
+    // zig fmt: on
+
+    return @max(1, @min(self.params.maximum_interval, next_interval));
 }
 
-fn getNextForgetStability(self: *Self, card: *Card) f32 {
+fn nextForgetStability(self: *Self, card: *const Card) f32 {
     const retrievability = forgettingCurve(card.elapsed_days, card.stability);
     // zig fmt: off
     return self.params.w[11] 
@@ -135,7 +163,7 @@ fn getNextForgetStability(self: *Self, card: *Card) f32 {
     // zig fmt: on
 }
 
-fn getNextRecallStability(self: *Self, card: *Card, rating: Rating) f32 {
+fn nextRecallStability(self: *Self, card: *const Card, rating: Rating) f32 {
     const modifier = switch (rating) {
         .Hard => self.params.w[15],
         .Easy => self.params.w[16],
@@ -154,18 +182,15 @@ fn getNextRecallStability(self: *Self, card: *Card, rating: Rating) f32 {
     // zig fmt: on
 }
 
-fn getNextDifficulty(self: *Self, card: *Card, rating: Rating) f32 {
-    const difficulty = @mulAdd(f32, self.params.w[6], -(@as(f32, @floatFromInt(@intFromEnum(rating))) - 3.0), card.difficulty);
-    return @min(10.0, @max(1.0, self.getMeanReversion(self.params.w[4], difficulty)));
-}
+fn nextDifficulty(self: *Self, card: *const Card, rating: Rating) f32 {
+    // zig fmt: off
+    const difficulty = @mulAdd(
+        f32, 
+        self.params.w[6],
+        -(@as(f32, @floatFromInt(@intFromEnum(rating))) - 3.0),
+        card.difficulty
+    );
+    // zig fmt: on
 
-fn setNextDifficultyStability(self: *Self, scheduling_cards: *SchedulingCards, last_card: *Card) void {
-    scheduling_cards.again.stability = self.getNextForgetStability(last_card);
-    scheduling_cards.again.difficulty = self.getNextDifficulty(last_card, .Again);
-    scheduling_cards.hard.stability = self.getNextRecallStability(last_card, .Hard);
-    scheduling_cards.hard.difficulty = self.getNextDifficulty(last_card, .Hard);
-    scheduling_cards.good.stability = self.getNextRecallStability(last_card, .Good);
-    scheduling_cards.good.difficulty = self.getNextDifficulty(last_card, .Good);
-    scheduling_cards.easy.stability = self.getNextRecallStability(last_card, .Easy);
-    scheduling_cards.easy.difficulty = self.getNextDifficulty(last_card, .Easy);
+    return @min(10.0, @max(1.0, self.meanReversion(self.params.w[4], difficulty)));
 }
