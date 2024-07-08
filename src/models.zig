@@ -8,14 +8,11 @@ pub const State = enum(u2) {
 };
 
 pub const Rating = enum(u3) {
-    Manual = 0,
     Again = 1,
     Hard = 2,
     Good = 3,
     Easy = 4,
 };
-
-pub const RATINGS_LEN = @typeInfo(Rating).Enum.fields.len;
 
 pub const Parameters = struct {
     pub const DECAY: f32 = -0.5;
@@ -34,7 +31,7 @@ pub const ReviewLog = struct {
     reviewed_date: i64,
 };
 
-pub const SchedulingInfo = struct {
+pub const ReviewedCard = struct {
     card: Card,
     review_log: ReviewLog,
 };
@@ -65,6 +62,24 @@ pub const Card = struct {
     }
 };
 
+pub const ScheduledCards = struct {
+    again: ReviewedCard,
+    hard: ReviewedCard,
+    good: ReviewedCard,
+    easy: ReviewedCard,
+
+    const Self = @This();
+
+    pub fn select(self: Self, rating: Rating) ReviewedCard {
+        return switch (rating) {
+            .Again => self.again,
+            .Hard => self.hard,
+            .Good => self.good,
+            .Easy => self.easy,
+        };
+    }
+};
+
 pub const SchedulingCards = struct {
     again: Card,
     hard: Card,
@@ -82,7 +97,7 @@ pub const SchedulingCards = struct {
         };
     }
 
-    pub fn updateState(self: *Self, state: State) void {
+    pub fn updateState(self: Self, state: State) void {
         switch (state) {
             .New => {
                 self.again.state = .Learning;
@@ -106,43 +121,48 @@ pub const SchedulingCards = struct {
         }
     }
 
-    pub fn recordLog(self: *Self, now: i64) [RATINGS_LEN - 1]SchedulingInfo {
-        return [RATINGS_LEN - 1]SchedulingInfo{ .{
-            .card = self.again,
-            .review_log = .{
-                .rating = .Again,
-                .elapsed_days = self.again.elapsed_days,
-                .scheduled_days = self.again.scheduled_days,
-                .state = self.again.state,
-                .reviewed_date = now,
+    pub fn toScheduledCards(self: Self, now: i64) ScheduledCards {
+        return .{
+            .again = .{
+                .card = self.again,
+                .review_log = .{
+                    .rating = .Again,
+                    .elapsed_days = self.again.elapsed_days,
+                    .scheduled_days = self.again.scheduled_days,
+                    .state = self.again.state,
+                    .reviewed_date = now,
+                },
             },
-        }, .{
-            .card = self.hard,
-            .review_log = .{
-                .rating = .Hard,
-                .elapsed_days = self.hard.elapsed_days,
-                .scheduled_days = self.hard.scheduled_days,
-                .state = self.hard.state,
-                .reviewed_date = now,
+            .hard = .{
+                .card = self.hard,
+                .review_log = .{
+                    .rating = .Hard,
+                    .elapsed_days = self.hard.elapsed_days,
+                    .scheduled_days = self.hard.scheduled_days,
+                    .state = self.hard.state,
+                    .reviewed_date = now,
+                },
             },
-        }, .{
-            .card = self.good,
-            .review_log = .{
-                .rating = .Good,
-                .elapsed_days = self.good.elapsed_days,
-                .scheduled_days = self.good.scheduled_days,
-                .state = self.good.state,
-                .reviewed_date = now,
+            .good = .{
+                .card = self.good,
+                .review_log = .{
+                    .rating = .Good,
+                    .elapsed_days = self.good.elapsed_days,
+                    .scheduled_days = self.good.scheduled_days,
+                    .state = self.good.state,
+                    .reviewed_date = now,
+                },
             },
-        }, .{
-            .card = self.easy,
-            .review_log = .{
-                .rating = .Easy,
-                .elapsed_days = self.easy.elapsed_days,
-                .scheduled_days = self.easy.scheduled_days,
-                .state = self.easy.state,
-                .reviewed_date = now,
+            .easy = .{
+                .card = self.easy,
+                .review_log = .{
+                    .rating = .Easy,
+                    .elapsed_days = self.easy.elapsed_days,
+                    .scheduled_days = self.easy.scheduled_days,
+                    .state = self.easy.state,
+                    .reviewed_date = now,
+                },
             },
-        } };
+        };
     }
 };

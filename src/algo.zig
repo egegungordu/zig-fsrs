@@ -4,9 +4,8 @@ const Models = @import("models.zig");
 const Parameters = Models.Parameters;
 const Card = Models.Card;
 const SchedulingCards = Models.SchedulingCards;
-const SchedulingInfo = Models.SchedulingInfo;
+const ScheduledCards = Models.ScheduledCards;
 const Rating = Models.Rating;
-const RATINGS_LEN = Models.RATINGS_LEN;
 
 const Self = @This();
 
@@ -18,7 +17,7 @@ pub fn init(params: Parameters) Self {
     };
 }
 
-pub fn repeat(self: *Self, card: Card, now: i64) [RATINGS_LEN - 1]SchedulingInfo {
+pub fn repeat(self: Self, card: Card, now: i64) ScheduledCards {
     const minute = 60;
     const day = 24 * 60 * 60;
     var c = card;
@@ -95,14 +94,14 @@ pub fn repeat(self: *Self, card: Card, now: i64) [RATINGS_LEN - 1]SchedulingInfo
         },
     }
 
-    return s.recordLog(now);
+    return s.toScheduledCards(now);
 }
 
-fn initStability(self: *Self, rating: Rating) f32 {
+fn initStability(self: Self, rating: Rating) f32 {
     return @max(self.params.w[@intFromEnum(rating) - 1], 0.1);
 }
 
-fn initDifficulty(self: *Self, rating: Rating) f32 {
+fn initDifficulty(self: Self, rating: Rating) f32 {
     // zig fmt: off
     const difficulty = @mulAdd(
         f32, 
@@ -125,7 +124,7 @@ fn forgettingCurve(elapsed_days: i64, stability: f32) f32 {
     // zig fmt: on
 }
 
-fn meanReversion(self: *Self, initial: f32, current: f32) f32 {
+fn meanReversion(self: Self, initial: f32, current: f32) f32 {
     // zig fmt: off
     return @mulAdd(
         f32, 
@@ -136,7 +135,7 @@ fn meanReversion(self: *Self, initial: f32, current: f32) f32 {
     // zig fmt: on
 }
 
-fn nextInterval(self: *Self, stability: f32) i64 {
+fn nextInterval(self: Self, stability: f32) i64 {
     // zig fmt: off
     const next_interval = @as(i32, 
         @intFromFloat(@round(
@@ -153,7 +152,7 @@ fn nextInterval(self: *Self, stability: f32) i64 {
     return @max(1, @min(self.params.maximum_interval, next_interval));
 }
 
-fn nextForgetStability(self: *Self, card: *const Card) f32 {
+fn nextForgetStability(self: Self, card: *const Card) f32 {
     const retrievability = forgettingCurve(card.elapsed_days, card.stability);
     // zig fmt: off
     return self.params.w[11] 
@@ -163,7 +162,7 @@ fn nextForgetStability(self: *Self, card: *const Card) f32 {
     // zig fmt: on
 }
 
-fn nextRecallStability(self: *Self, card: *const Card, rating: Rating) f32 {
+fn nextRecallStability(self: Self, card: *const Card, rating: Rating) f32 {
     const modifier = switch (rating) {
         .Hard => self.params.w[15],
         .Easy => self.params.w[16],
@@ -182,7 +181,7 @@ fn nextRecallStability(self: *Self, card: *const Card, rating: Rating) f32 {
     // zig fmt: on
 }
 
-fn nextDifficulty(self: *Self, card: *const Card, rating: Rating) f32 {
+fn nextDifficulty(self: Self, card: *const Card, rating: Rating) f32 {
     // zig fmt: off
     const difficulty = @mulAdd(
         f32, 

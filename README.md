@@ -14,17 +14,17 @@ pub fn main() !void {
     var s = fsrs.repeat(initial_card, now);
 
     // good was selected on new card
-    const first_rep = s[@intFromEnum(Rating.Good) - 1].card;
+    const first_rep = s.select(.Good).card;
     now = first_rep.due;
 
     // good was selected on learning card
     s = fsrs.repeat(first_rep, now);
-    const second_rep = s[@intFromEnum(Rating.Good) - 1].card;
+    const second_rep = s.select(.Good).card;
     now = second_rep.due;
 
     // again was selected on review card
     s = fsrs.repeat(second_rep, now);
-    const third_rep = s[@intFromEnum(Rating.Again) - 1].card;
+    const third_rep = s.select(.Again).card;
     now = third_rep.due;
 
     print_card(&initial_card, "Initial card");

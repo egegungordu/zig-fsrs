@@ -10,17 +10,19 @@ test "test intervals" {
     });
     var card = zig_fsrs.Card.init();
     var now: i64 = 1669725000;
-    var scheduling_cards = fsrs.repeat(card, now);
+    var scheduled_cards = fsrs.repeat(card, now);
+
+    // scheduled_cards.select(.Again);
 
     const ratings = [13]Rating{ .Good, .Good, .Good, .Good, .Good, .Good, .Again, .Again, .Good, .Good, .Good, .Good, .Good };
     var intervals: [13]i64 = undefined;
 
     for (ratings, 0..) |rating, i| {
-        card = scheduling_cards[@intFromEnum(rating) - 1].card;
+        card = scheduled_cards.select(rating).card;
         intervals[i] = card.scheduled_days;
         now = card.due;
 
-        scheduling_cards = fsrs.repeat(card, now);
+        scheduled_cards = fsrs.repeat(card, now);
     }
 
     const expected_intervals = [13]i64{ 0, 4, 15, 49, 143, 379, 0, 0, 15, 37, 85, 184, 376 };
@@ -33,17 +35,17 @@ test "test states" {
     });
     var card = zig_fsrs.Card.init();
     var now: i64 = 1669725000;
-    var scheduling_cards = fsrs.repeat(card, now);
+    var scheduled_cards = fsrs.repeat(card, now);
 
     const ratings = [13]Rating{ .Good, .Good, .Good, .Good, .Good, .Good, .Again, .Again, .Good, .Good, .Good, .Good, .Good };
     var states: [13]State = undefined;
 
     for (ratings, 0..) |rating, i| {
         states[i] = card.state;
-        card = scheduling_cards[@intFromEnum(rating) - 1].card;
+        card = scheduled_cards.select(rating).card;
         now = card.due;
 
-        scheduling_cards = fsrs.repeat(card, now);
+        scheduled_cards = fsrs.repeat(card, now);
     }
 
     const expected_states = [13]State{ .New, .Learning, .Review, .Review, .Review, .Review, .Review, .Relearning, .Relearning, .Review, .Review, .Review, .Review };
