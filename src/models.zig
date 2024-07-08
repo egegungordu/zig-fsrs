@@ -97,7 +97,7 @@ pub const SchedulingCards = struct {
         };
     }
 
-    pub fn updateState(self: Self, state: State) void {
+    pub fn updateState(self: *Self, state: State) void {
         switch (state) {
             .New => {
                 self.again.state = .Learning;
