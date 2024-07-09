@@ -9,7 +9,7 @@ const vaxis = @import("vaxis");
 
 const log = std.log.scoped(.main);
 
-const TUIItem = struct {
+const TableItem = struct {
     index: usize,
     due: i64,
     state: fsrs.State,
@@ -21,8 +21,8 @@ const TUIItem = struct {
     reps: i64,
     lapses: i64,
 
-    fn fromCardWithIndex(card: fsrs.Card, index: usize) TUIItem {
-        return TUIItem{
+    fn fromCardWithIndex(card: fsrs.Card, index: usize) TableItem {
+        return TableItem{
             .index = index,
             .due = card.due,
             .state = card.state,
@@ -37,12 +37,12 @@ const TUIItem = struct {
     }
 };
 
-fn handleRateCard(f: *fsrs.FSRS, card_history: *std.ArrayList(fsrs.Card), table_list: *std.ArrayList(TUIItem), rating: fsrs.Rating) !void {
+fn handleRateCard(f: *fsrs.FSRS, card_history: *std.ArrayList(fsrs.Card), table_list: *std.ArrayList(TableItem), rating: fsrs.Rating) !void {
     const last_card = card_history.getLast();
     const s = f.repeat(last_card, last_card.due);
     const new_card = s.select(rating).card;
     try card_history.append(new_card);
-    try table_list.append(TUIItem.fromCardWithIndex(new_card, table_list.items.len));
+    try table_list.append(TableItem.fromCardWithIndex(new_card, table_list.items.len));
 }
 
 pub fn main() !void {
@@ -55,8 +55,8 @@ pub fn main() !void {
     try card_history.append(init_card);
     defer card_history.deinit();
 
-    var table_list = std.ArrayList(TUIItem).init(alloc);
-    try table_list.append(TUIItem.fromCardWithIndex(init_card, 0));
+    var table_list = std.ArrayList(TableItem).init(alloc);
+    try table_list.append(TableItem.fromCardWithIndex(init_card, 0));
     defer table_list.deinit();
 
     var tty = try vaxis.Tty.init();
