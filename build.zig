@@ -13,7 +13,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     // Examples
-    const Example = enum { simple };
+    const Example = enum { simple, tui };
     const example_option = b.option(Example, "example", "Example to run (default: simple)") orelse .simple;
     const example_step = b.step("example", "Run example");
     const example = b.addExecutable(.{
@@ -25,6 +25,14 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
     example.root_module.addImport("zig-fsrs", zig_fsrs_module);
+    // TODO: vaxis is not needed on examples without tui,
+    // find another way to conditionally add it only if tui is used
+    // reference: https://github.com/zigzap/zap/blob/master/build.zig
+    const vaxis_dep = b.lazyDependency("vaxis", .{
+        .optimize = optimize,
+        .target = target,
+    });
+    if (vaxis_dep) |dep| example.root_module.addImport("vaxis", dep.module("vaxis"));
 
     const example_run = b.addRunArtifact(example);
     example_step.dependOn(&example_run.step);
