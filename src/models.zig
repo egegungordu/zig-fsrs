@@ -5,6 +5,16 @@ pub const State = enum(u2) {
     Learning = 1,
     Review = 2,
     Relearning = 3,
+
+    pub fn format(
+        self: State,
+        comptime fmt: []const u8,
+        _: std.fmt.FormatOptions,
+        out_stream: anytype,
+    ) !void {
+        if (fmt.len != 0) std.fmt.invalidFmtError(fmt, self);
+        try std.fmt.format(out_stream, "{s}", .{@tagName(self)});
+    }
 };
 
 pub const Rating = enum(u3) {
@@ -12,6 +22,16 @@ pub const Rating = enum(u3) {
     Hard = 2,
     Good = 3,
     Easy = 4,
+
+    pub fn format(
+        self: Rating,
+        comptime fmt: []const u8,
+        _: std.fmt.FormatOptions,
+        out_stream: anytype,
+    ) !void {
+        if (fmt.len != 0) std.fmt.invalidFmtError(fmt, self);
+        try std.fmt.format(out_stream, "{s}", .{@tagName(self)});
+    }
 };
 
 pub const Parameters = struct {
