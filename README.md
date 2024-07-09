@@ -55,7 +55,7 @@ Add zig-fsrs to your `build.zig` file:
 
 ```zig
 const zig_fsrs = b.dependency("zig-fsrs", .{});
-exe.root_module.addImport("zig-fsrs", zig_fractions.module("zig-fsrs"));
+exe.root_module.addImport("zig-fsrs", zig_fsrs.module("zig-fsrs"));
 ```
 
 Now you can import zig-fsrs in your code:
