@@ -22,20 +22,8 @@ pub fn main() !void {
     const third_rep = s.select(.Again).card;
     now = third_rep.due;
 
-    print_card(&initial_card, "Initial card");
-    print_card(&first_rep, "First rep");
-    print_card(&second_rep, "Second rep");
-    print_card(&third_rep, "Third rep");
-}
-
-fn print_card(card: *const Card, title: []const u8) void {
-    std.debug.print("{s}\n", .{title});
-    std.debug.print("  state: {s}\n", .{@tagName(card.state)});
-    std.debug.print("  reps: {d}\n", .{card.reps});
-    std.debug.print("  lapses: {d}\n", .{card.lapses});
-    std.debug.print("  stability: {d}\n", .{card.stability});
-    std.debug.print("  difficulty: {d}\n", .{card.difficulty});
-    std.debug.print("  elapsed days: {d}\n", .{card.elapsed_days});
-    std.debug.print("  scheduled days: {d}\n", .{card.scheduled_days});
-    std.debug.print("  due: {d}\n", .{card.due});
+    std.debug.print("initial card:\n{}\n\n", .{initial_card});
+    std.debug.print("after first rep (good):\n{}\n\n", .{first_rep});
+    std.debug.print("after second rep (good):\n{}\n\n", .{second_rep});
+    std.debug.print("after third rep (again):\n{}\n\n", .{third_rep});
 }

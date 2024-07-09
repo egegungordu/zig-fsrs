@@ -37,14 +37,14 @@ pub const ReviewedCard = struct {
 };
 
 pub const Card = struct {
-    due: i64,
+    state: State,
+    reps: i32,
+    lapses: i32,
     stability: f32,
     difficulty: f32,
     elapsed_days: i64,
     scheduled_days: i64,
-    reps: i32,
-    lapses: i32,
-    state: State,
+    due: i64,
     last_review: i64,
 
     pub fn init() Card {
@@ -59,6 +59,26 @@ pub const Card = struct {
             .state = .New,
             .last_review = 0,
         };
+    }
+
+    pub fn format(
+        self: Card,
+        comptime fmt: []const u8,
+        _: std.fmt.FormatOptions,
+        out_stream: anytype,
+    ) !void {
+        if (fmt.len != 0) std.fmt.invalidFmtError(fmt, self);
+        try std.fmt.format(out_stream,
+            \\  state:          {any}
+            \\  reps:           {d}
+            \\  lapses:         {d}
+            \\  stability:      {d}
+            \\  difficulty:     {d}
+            \\  elapsed days:   {d}
+            \\  scheduled days: {d}
+            \\  due:            {d}
+            \\  last review:    {d}
+        , self);
     }
 };
 
