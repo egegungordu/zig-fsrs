@@ -10,10 +10,10 @@ pub const State = enum(u2) {
         self: State,
         comptime fmt: []const u8,
         _: std.fmt.FormatOptions,
-        out_stream: anytype,
+        writer: anytype,
     ) !void {
         if (fmt.len != 0) std.fmt.invalidFmtError(fmt, self);
-        try std.fmt.format(out_stream, "{s}", .{@tagName(self)});
+        try writer.writeAll(@tagName(self));
     }
 };
 
@@ -27,10 +27,10 @@ pub const Rating = enum(u3) {
         self: Rating,
         comptime fmt: []const u8,
         _: std.fmt.FormatOptions,
-        out_stream: anytype,
+        writer: anytype,
     ) !void {
         if (fmt.len != 0) std.fmt.invalidFmtError(fmt, self);
-        try std.fmt.format(out_stream, "{s}", .{@tagName(self)});
+        try writer.writeAll(@tagName(self));
     }
 };
 
@@ -85,10 +85,10 @@ pub const Card = struct {
         self: Card,
         comptime fmt: []const u8,
         _: std.fmt.FormatOptions,
-        out_stream: anytype,
+        writer: std.fmt.Writer,
     ) !void {
         if (fmt.len != 0) std.fmt.invalidFmtError(fmt, self);
-        try std.fmt.format(out_stream,
+        try writer.print(
             \\  state:          {any}
             \\  reps:           {d}
             \\  lapses:         {d}
