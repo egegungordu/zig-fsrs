@@ -102,6 +102,14 @@ pub fn main() !void {
     };
     var title_segs = [_]vaxis.Cell.Segment{ title_logo, title_info, title_ratings };
 
+    var keys = [_]vaxis.Cell.Segment{.{
+        .text = "k: up\nj: down\nh: left\nl: right\nctrl + C: exit",
+        .style = .{
+            .fg = .{ .rgb = .{ 128, 128, 128 } },
+            .bg = other_bg,
+        },
+    }};
+
     // Table Context
     var demo_tbl: vaxis.widgets.Table.TableContext = .{ .selected_bg = selected_bg };
 
@@ -155,25 +163,48 @@ pub fn main() !void {
         const win = vx.window();
         win.clear();
 
-        // - Top
-        const top_bar = win.initChild(
+        // - Top left
+        const top_left_bar = win.initChild(
             0,
             0,
-            .{ .limit = win.width },
+            .{ .limit = win.width / 3 },
             .{ .limit = 5 },
         );
-        top_bar.fill(.{ .style = .{
+        top_left_bar.fill(.{ .style = .{
             .bg = other_bg,
         } });
-        const logo_bar = vaxis.widgets.alignment.center(top_bar, 42, 3);
+        _ = try top_left_bar.print(keys[0..], .{ .wrap = .word });
+
+        // - Top middle
+        const top_middle_bar = win.initChild(
+            win.width / 3,
+            0,
+            .{ .limit = win.width / 3 },
+            .{ .limit = 5 },
+        );
+        top_middle_bar.fill(.{ .style = .{
+            .bg = other_bg,
+        } });
+        const logo_bar = vaxis.widgets.alignment.center(top_middle_bar, 42, 3);
         _ = try logo_bar.print(title_segs[0..], .{ .wrap = .word });
+
+        // - Top right
+        const top_right_bar = win.initChild(
+            win.width / 3 * 2,
+            0,
+            .{ .limit = win.width / 3 },
+            .{ .limit = 5 },
+        );
+        top_right_bar.fill(.{ .style = .{
+            .bg = other_bg,
+        } });
 
         // - Middle
         const middle_bar = win.initChild(
             0,
             5,
             .{ .limit = win.width },
-            .{ .limit = win.height - top_bar.height },
+            .{ .limit = win.height - top_middle_bar.height },
         );
 
         if (card_history.items.len > 0) {
