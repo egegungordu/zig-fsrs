@@ -85,7 +85,7 @@ pub const Card = struct {
         self: Card,
         comptime fmt: []const u8,
         _: std.fmt.FormatOptions,
-        writer: std.fmt.Writer,
+        writer: anytype,
     ) !void {
         if (fmt.len != 0) std.fmt.invalidFmtError(fmt, self);
         try writer.print(
