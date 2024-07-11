@@ -12,8 +12,6 @@ test "test intervals" {
     var now: i64 = 1669725000;
     var scheduled_cards = fsrs.schedule(card, now);
 
-    // scheduled_cards.select(.Again);
-
     const ratings = [13]Rating{ .Good, .Good, .Good, .Good, .Good, .Good, .Again, .Again, .Good, .Good, .Good, .Good, .Good };
     var intervals: [13]i64 = undefined;
 
