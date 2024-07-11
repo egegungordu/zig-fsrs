@@ -17,7 +17,7 @@ pub fn init(params: Parameters) Self {
     };
 }
 
-pub fn repeat(self: Self, card: Card, now: i64) ScheduledCards {
+pub fn schedule(self: Self, card: Card, now: i64) ScheduledCards {
     const minute = 60;
     const day = 24 * 60 * 60;
     var c = card;

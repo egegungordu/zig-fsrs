@@ -39,7 +39,7 @@ const TableItem = struct {
 
 fn handleRateCard(f: *fsrs.FSRS, card_history: *std.ArrayList(fsrs.Card), table_list: *std.ArrayList(TableItem), rating: fsrs.Rating) !void {
     const last_card = card_history.getLast();
-    const s = f.repeat(last_card, last_card.due);
+    const s = f.schedule(last_card, last_card.due);
     const new_card = s.select(rating).card;
     try card_history.append(new_card);
     try table_list.append(TableItem.fromCardWithIndex(new_card, table_list.items.len));
